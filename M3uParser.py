@@ -13,6 +13,7 @@ import urllib.request
 import random
 from ssl import CertificateError
 import collections
+from bs4 import BeautifulSoup
 import validators
 
 
@@ -44,50 +45,42 @@ class M3uParser:
         retorno = False
         if not validators.url(url):
             return retorno
-        if not notSave:  # not save false
-            currentDir = os.path.dirname(os.path.realpath(__file__))
-            if filename == "":
-                filename = "test.m3u"
-            try:
-                filename = os.path.join(currentDir, filename)
-                urllib.request.urlretrieve(url, filename)
-                file = open(self.filename, encoding="utf8")
 
-                if file[0] == "#EXTM3U":
-                    retorno = True
+        currentDir = os.path.dirname(os.path.realpath(__file__))
+        if filename == "":
+            filename = "test.m3u"
+
+        try:
+            req = urllib.request.Request(url, data=None, headers=self.headers)
+            page = urllib.request.urlopen(req)
+            bs = BeautifulSoup(page, "lxml")
+            pagina = bs.text
+
+            lines=pagina.splitlines()
+            print(lines[0])
+            if lines[0] == "#EXTM3U":
+                retorno = True
+            if not notSave:
+                self.filename = os.path.join(currentDir, filename)
+                with open(self.filename, "w+",encoding="utf8") as file:
+                    file.write(pagina)
+                    file.close()
                 return retorno, filename
-            except urllib.error.HTTPError as E:
+            else:
+                return retorno
+
+        except urllib.error.HTTPError as E:
+            self.logging.error(E)
+            return retorno
+        except urllib.error.URLError as E:
+            if str(E).__contains__("Errno 11001"):
+                return retorno
+            else:
                 self.logging.error(E)
-                return retorno
-            except urllib.error.URLError as E:
-                if str(E).__contains__("Errno 11001"):
-                    return retorno
-                else:
-                    self.logging.error(E)
-                    return retorno
-            except:
-                return retorno
-        else:  # notsave true
-            try:
-                req = urllib.request.Request(url, data=None, headers=self.headers)
-                page = urllib.request.urlopen(req)
-                pagina = str(page.read()).split('\\n')
-                for line in pagina:
-                    if line.__contains__("#EXTM3U"):
-                        retorno = True
-                        return retorno
-            except urllib.error.HTTPError as E:
-                self.logging.error(E)
-                return retorno
-            except urllib.error.URLError as E:
-                if str(E).__contains__("Errno 11001"):
-                    return retorno
-                else:
-                    self.logging.error(E)
-                return retorno
-            except:
-                traceback.print_exc()
-                return retorno
+            return retorno
+        except:
+            traceback.print_exc()
+            return retorno
 
     # Read the file from the given path
     def readM3u(self, filename):
@@ -185,7 +178,7 @@ class M3uParser:
         return self.files.pop()
 
     def remove_offline(self):
-        for line in self.lines:
+        for line in self.files:
             try:
                 code = urllib.request.urlopen(line["link"]).getcode()
                 # if code == 200:  #Edited per @Brad's comment
@@ -193,10 +186,10 @@ class M3uParser:
                     pass
                 else:
                     self.logging.info(str(line) + " is offline and get code: " + str(code))
-                    self.lines.remove(line)
+                    self.files.remove(line)
             except urllib.error.HTTPError as E:
                 self.logging.error(str(line) + " is offline and get error " + str(E))
-                self.lines.remove(line)
+                self.files.remove(line)
             except CertificateError as E:
                 self.logging.error(str(line) + " get error " + str(E))
             except urllib.error.URLError as E:
