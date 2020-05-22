@@ -28,23 +28,21 @@ class M3uParser:
     # Download the file from the given url
     def downloadM3u(self, url, filename="", notSave=False):
         try:
-            is_m3u, filename = self.isM3u(url, filename, notSave=False)
+            is_m3u, filename = self.isM3u(url, filename, notSave=notSave)
         except TypeError:
             return False
         if is_m3u:
             self.avaliableTags = []
-            self.readAllLines(filename)
+            self.readAllLines(filename, file=not notSave)
             self.parseFile()
-            if notSave:
-                os.remove(filename)
-            else:
+            if not notSave:
                 self.filename = filename
         return is_m3u
 
     def isM3u(self, url, filename="", notSave=True):
         retorno = False
         if not validators.url(url):
-            return retorno
+            return retorno, None
 
         currentDir = os.path.dirname(os.path.realpath(__file__))
         if filename == "":
@@ -56,18 +54,17 @@ class M3uParser:
             bs = BeautifulSoup(page, "lxml")
             pagina = bs.text
 
-            lines=pagina.splitlines()
-            print(lines[0])
+            lines = pagina.splitlines()
             if lines[0] == "#EXTM3U":
                 retorno = True
             if not notSave:
-                self.filename = os.path.join(currentDir, filename)
-                with open(self.filename, "w+",encoding="utf8") as file:
+                filename = os.path.join(currentDir, filename)
+                with open(filename, "w+", encoding="utf8") as file:
                     file.write(pagina)
                     file.close()
                 return retorno, filename
             else:
-                return retorno
+                return retorno, lines
 
         except urllib.error.HTTPError as E:
             self.logging.error(E)
@@ -80,6 +77,7 @@ class M3uParser:
             return retorno
         except:
             traceback.print_exc()
+            self.logging.error(traceback.print_exc())
             return retorno
 
     # Read the file from the given path
@@ -89,12 +87,14 @@ class M3uParser:
         self.parseFile()
 
     # Read all file lines
-    def readAllLines(self, filename=""):
+    def readAllLines(self, filename="", file=True):
         # try:
         if filename == "":
             self.lines = [line.rstrip('\n') for line in open(self.filename, encoding="utf8")]
-        else:
+        elif file:
             self.lines = [line.rstrip('\n') for line in open(filename, encoding="utf8")]
+        else:
+            self.lines = [line.rstrip('\n') for line in filename]
         return len(self.lines)
 
     def parseFile(self):
