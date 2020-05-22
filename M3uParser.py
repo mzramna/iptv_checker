@@ -12,7 +12,7 @@ import traceback
 import urllib.request
 import random
 from ssl import CertificateError
-
+import collections
 import validators
 
 
@@ -31,6 +31,7 @@ class M3uParser:
         except TypeError:
             return False
         if is_m3u:
+            self.avaliableTags=[]
             self.readAllLines(filename)
             self.parseFile()
             if notSave:
@@ -124,13 +125,19 @@ class M3uParser:
             tags = re.findall(r"\ (.*?)=", lineInfo)
             self.logging.info("infos: " + str(lineInfo) + " tags: " + str(tags))
             for tag in tags:
+                if tag not in self.avaliableTags:
+                    self.avaliableTags.append(tag)
+                    for file in self.files:
+                        file[tag]=""
+            for tag in self.avaliableTags:
                 try:
+                    value = ""
                     m = re.search(tag + "=\"(.*?)\"", lineInfo)
                     value = m.group(1)
                 except AttributeError as E:
                     value = ""
-
-                test[tag] = value
+                finally:
+                    test[tag] = value
             test["link"] = lineLink
             self.files.append(test)
 
@@ -196,8 +203,13 @@ class M3uParser:
                 self.logging.error(str(line) + " get error " + str(E))
 
     def remove_duplicate(self):
-        for line in self.lines:
-            for comparated_line in self.lines:
-                if self.lines.index(line) != self.lines.index(comparated_line):
+        for line in self.files:
+            for comparated_line in self.files:
+                if self.files.index(line) != self.files.index(comparated_line):
                     if line["link"] == comparated_line["link"]:
-                        self.lines.remove(comparated_line)
+                        self.files.remove(comparated_line)
+    def sort(self,tag=""):
+        if tag != "" and tag in self.avaliableTags:
+            sorted(self.lines,key=lambda k:k[tag])
+        else:
+            sorted(self.lines, key=lambda k: k["link"])
