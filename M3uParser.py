@@ -31,7 +31,7 @@ class M3uParser:
         except TypeError:
             return False
         if is_m3u:
-            self.avaliableTags=[]
+            self.avaliableTags = []
             self.readAllLines(filename)
             self.parseFile()
             if notSave:
@@ -44,7 +44,7 @@ class M3uParser:
         retorno = False
         if not validators.url(url):
             return retorno
-        if not notSave:#not save false
+        if not notSave:  # not save false
             currentDir = os.path.dirname(os.path.realpath(__file__))
             if filename == "":
                 filename = "test.m3u"
@@ -57,17 +57,17 @@ class M3uParser:
                     retorno = True
                 return retorno, filename
             except urllib.error.HTTPError as E:
-                print(E)
+                self.logging.error(E)
                 return retorno
             except urllib.error.URLError as E:
                 if str(E).__contains__("Errno 11001"):
                     return retorno
                 else:
-                    print(E)
+                    self.logging.error(E)
                     return retorno
             except:
                 return retorno
-        else:# notsave true
+        else:  # notsave true
             try:
                 req = urllib.request.Request(url, data=None, headers=self.headers)
                 page = urllib.request.urlopen(req)
@@ -77,13 +77,13 @@ class M3uParser:
                         retorno = True
                         return retorno
             except urllib.error.HTTPError as E:
-                print(E)
+                self.logging.error(E)
                 return retorno
             except urllib.error.URLError as E:
                 if str(E).__contains__("Errno 11001"):
                     return retorno
                 else:
-                    print(E)
+                    self.logging.error(E)
                 return retorno
             except:
                 traceback.print_exc()
@@ -128,7 +128,7 @@ class M3uParser:
                 if tag not in self.avaliableTags:
                     self.avaliableTags.append(tag)
                     for file in self.files:
-                        file[tag]=""
+                        file[tag] = ""
             for tag in self.avaliableTags:
                 try:
                     value = ""
@@ -208,8 +208,9 @@ class M3uParser:
                 if self.files.index(line) != self.files.index(comparated_line):
                     if line["link"] == comparated_line["link"]:
                         self.files.remove(comparated_line)
-    def sort(self,tag=""):
+
+    def sort(self, tag=""):
         if tag != "" and tag in self.avaliableTags:
-            sorted(self.lines,key=lambda k:k[tag])
+            sorted(self.lines, key=lambda k: k[tag])
         else:
             sorted(self.lines, key=lambda k: k["link"])
