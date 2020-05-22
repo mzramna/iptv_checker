@@ -1,0 +1,9 @@
+beautifulsoup4==4.9.1
+decorator==4.4.2
+google==2.0.3
+iso8601==0.1.12
+lxml==4.5.1
+m3u8==0.6.0
+six==1.15.0
+soupsieve==2.0.1
+validators==0.15.0
