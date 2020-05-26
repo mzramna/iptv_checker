@@ -75,6 +75,9 @@ class M3uParser:
             else:
                 self.logging.error(E)
             return retorno
+        except IndexError as E:
+            self.logging.error(E)
+            return retorno
         except:
             traceback.print_exc()
             self.logging.error(traceback.print_exc())

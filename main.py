@@ -2,7 +2,7 @@ import traceback
 
 from googlesearch import search
 from pip._vendor import requests
-
+from urllib.parse import urlparse
 from M3uParser import M3uParser
 import logging
 from bs4 import BeautifulSoup
@@ -89,7 +89,7 @@ def get_links_in_page(url):
 
 def get_iptv_from_google(resultados=30):
     retorno = []
-
+    tested = []
     for i in search("iptv m3u",  # The query you want to run
                     tld='com.br',  # The top level domain
                     lang='pt-br',  # The language
@@ -100,12 +100,25 @@ def get_iptv_from_google(resultados=30):
                     ):
         print(i)
         sublinks = get_links_in_page(i)
+
         try:
+            if m3u.downloadM3u(i, notSave=True):
+                print("m3u valido:")
+                print(i)
+                tested.append(i)
+
             for sublink in sublinks:
-                if sublink[0:2] == "//":
-                    sublink = requests.compat.urljoin(i, sublink)
-                if m3u.downloadM3u(sublink, notSave=True):
+                if sublink[0] == "/":
+                    parsed_uri = urlparse(i)
+                    print("substitute")
+                    sublink = requests.compat.urljoin('{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri), sublink)
                     print(sublink)
+                if sublink not in tested and m3u.downloadM3u(sublink, notSave=True):
+                    print("m3u valido:")
+                    print(sublink)
+                    tested.append(sublink)
+                elif sublink not in tested:
+                    tested.append(sublink)
         except:
             traceback.print_exc()
     return retorno
@@ -117,6 +130,8 @@ def get_iptv_from_google(resultados=30):
 # m3u.remove_offline()
 # print(m3u.getList())
 print(get_iptv_from_google())
+# if m3u.downloadM3u("https://gist.github.com/rubenbruno89/3afe153f09b50ab491330fc214d9b677/raw/2f3a33142be678626fd128da2165e112ccb4a8c7/iptv.m3u",notSave=True):
+#     print("m3u")
 m3u.remove_duplicate()
 m3u.remove_offline()
 print(m3u.getList())
